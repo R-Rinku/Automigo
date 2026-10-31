@@ -1,0 +1,11 @@
+# Private keys & extension builds (NEVER commit to git)
+*.pem
+*.crx
+*.zip
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

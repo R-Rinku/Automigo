@@ -1,0 +1,477 @@
+/* ═══════════════════════════════════════════════════════
+   AUTOMIGO RUNNER HUD — PREMIUM PROTON / CYBERPUNK THEME
+   ═══════════════════════════════════════════════════════ */
+
+#amigo-ai-hud {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  width: 320px;
+  background: rgba(15, 15, 23, 0.88);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  color: #f1f1f9;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 25px rgba(109, 40, 217, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  font-size: 13px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.1s ease;
+  letter-spacing: -0.01em;
+  user-select: none;
+}
+
+/* MINIMIZED STATE: SHOWS ONLY THE AMIGO LOGO ICON AS A ROUND FLOATING FAB */
+#amigo-ai-hud.minimized {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(18, 16, 28, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.5);
+  border: 1.5px solid rgba(139, 92, 246, 0.6);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#amigo-ai-hud.minimized .amigo-hud-header {
+  padding: 0;
+  border-bottom: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: pointer;
+}
+
+#amigo-ai-hud.minimized .amigo-hud-title {
+  gap: 0;
+}
+
+#amigo-ai-hud.minimized .amigo-hud-title span {
+  display: none !important;
+}
+
+#amigo-ai-hud.minimized .amigo-hud-controls {
+  display: none !important;
+}
+
+#amigo-ai-hud.minimized .logo-pulse {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  box-shadow: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#amigo-ai-hud.minimized .logo-pulse img {
+  width: 30px;
+  height: 30px;
+}
+
+#amigo-ai-hud.minimized:hover {
+  transform: scale(1.1);
+  border-color: rgba(167, 139, 250, 0.9);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(139, 92, 246, 0.75);
+}
+
+/* Header */
+.amigo-hud-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+  cursor: grab;
+}
+
+.amigo-hud-header:active {
+  cursor: grabbing;
+}
+
+.amigo-hud-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.amigo-hud-title .logo-pulse {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.amigo-hud-title .logo-pulse img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.6));
+}
+
+.amigo-hud-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amigo-hud-controls span {
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.amigo-hud-controls span:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Body Container */
+.amigo-hud-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Proton-Style AI Status Banner Card */
+.amigo-provider-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s;
+}
+
+.amigo-provider-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.amigo-provider-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot-ring {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-dot-ring .inner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  transition: all 0.3s;
+}
+
+.status-dot-ring.offline .inner-dot {
+  background: #f43f5e;
+  box-shadow: 0 0 10px #f43f5e;
+}
+
+.status-dot-ring::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.status-dot-ring.offline::after {
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.provider-info-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.provider-name-text {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #ffffff;
+}
+
+.provider-model-text {
+  font-size: 10.5px;
+  color: #71717a;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.provider-chip {
+  background: rgba(109, 40, 217, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+/* Big Hero Power Buttons */
+.amigo-hero-action {
+  position: relative;
+  width: 100%;
+}
+
+.amigo-btn-hero {
+  width: 100%;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(109, 40, 217, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.amigo-btn-hero:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1.5px);
+}
+
+.amigo-btn-hero:active {
+  transform: translateY(0.5px);
+  box-shadow: 0 2px 10px rgba(109, 40, 217, 0.35);
+}
+
+.amigo-btn-stop-hero {
+  width: 100%;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12.5px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(225, 29, 72, 0.4);
+  transition: all 0.2s ease;
+}
+
+.amigo-btn-stop-hero:hover {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 6px 24px rgba(225, 29, 72, 0.55);
+  transform: translateY(-1.5px);
+}
+
+/* Secondary Button Row */
+.amigo-btn-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.amigo-btn-sub {
+  background: rgba(255, 255, 255, 0.04);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 7px 4px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.amigo-btn-sub:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.amigo-btn-sub:active {
+  transform: translateY(0);
+}
+
+/* Status Console Box */
+.amigo-status-box {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 9px 11px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: #a1a1aa;
+  max-height: 115px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.4) transparent;
+}
+
+.amigo-status-box::-webkit-scrollbar {
+  width: 4px;
+}
+
+.amigo-status-box::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+}
+
+.amigo-ans-item {
+  margin-bottom: 4px;
+  color: #e4e4e7;
+}
+
+.amigo-ans-item strong {
+  color: #c4b5fd;
+}
+
+/* Floating Confirmation Dialog Modal */
+.amigo-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: amigoFadeIn 0.2s ease;
+}
+
+.amigo-confirm-modal {
+  width: 360px;
+  background: #12101c;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(109, 40, 217, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #f4f4f5;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  text-align: center;
+}
+
+.amigo-confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.amigo-confirm-msg {
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.5;
+}
+
+.amigo-confirm-timer {
+  font-size: 12px;
+  color: #c4b5fd;
+  font-weight: 600;
+}
+
+.amigo-confirm-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.amigo-confirm-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.amigo-confirm-yes {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+}
+
+.amigo-confirm-yes:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+}
+
+.amigo-confirm-no {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.amigo-confirm-no:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@keyframes amigoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

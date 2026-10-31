@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Automigo Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="header-left">
+        <img class="logo-icon-img" src="icons/icon32.png" alt="Amigo">
+        <div>
+          <div class="title">Automigo</div>
+          <div class="subtitle">AI Provider Configuration</div>
+        </div>
+      </div>
+      <div id="status-pill" class="status-pill checking">
+        <div class="dot"></div>
+        <span id="status-pill-text">Testing...</span>
+      </div>
+    </div>
+
+    <!-- Active Banner -->
+    <div class="active-banner">
+      <div class="banner-top">
+        <span class="banner-title">Active AI Provider</span>
+        <span class="badge" id="banner-provider-badge">OmniRoute</span>
+      </div>
+      <div class="banner-model" id="banner-model-text">Model: auto/best-fast</div>
+    </div>
+
+    <!-- Configuration Form -->
+    <div class="form-container">
+      <div class="form-group">
+        <label for="provider-select">Select Provider</label>
+        <select id="provider-select" class="form-control">
+          <!-- Populated by JS -->
+        </select>
+      </div>
+
+      <div class="form-group" id="group-apikey">
+        <label for="input-apikey">API Key</label>
+        <div class="input-password-wrapper">
+          <input type="password" id="input-apikey" class="form-control" placeholder="Enter API Key...">
+          <button type="button" id="toggle-key-visibility" class="btn-eye" title="Toggle visibility">👁️</button>
+        </div>
+      </div>
+
+      <div class="form-group" id="group-url">
+        <label for="input-url">Chat Endpoint URL</label>
+        <input type="text" id="input-url" class="form-control" placeholder="https://.../v1/chat/completions">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="input-fast-model">Fast Model (Quizzes)</label>
+          <input type="text" id="input-fast-model" class="form-control" placeholder="Fast model name">
+        </div>
+        <div class="form-group flex-1">
+          <label for="input-reason-model">Reasoning Model</label>
+          <input type="text" id="input-reason-model" class="form-control" placeholder="Reasoning model name">
+        </div>
+      </div>
+
+      <div class="hint-box" id="provider-hint">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="test-result-box" class="result-box"></div>
+
+    <!-- Action Buttons -->
+    <div class="btn-actions">
+      <button id="btn-test" class="btn btn-secondary">🧪 Test Connection</button>
+      <button id="btn-save" class="btn btn-primary">💾 Save Settings</button>
+    </div>
+
+    <div class="footer-note">
+      💡 Changes sync instantly with your active Amigo LMS overlay.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
