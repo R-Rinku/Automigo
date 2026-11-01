@@ -989,15 +989,33 @@
       if (bgKeepAliveCtx && bgKeepAliveCtx.state === "running") return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
-      bgKeepAliveCtx = new AudioCtx();
-      const osc = bgKeepAliveCtx.createOscillator();
-      const gain = bgKeepAliveCtx.createGain();
-      gain.gain.value = 0.000001; // Inaudible (zero sound, exempts tab from freezing)
-      osc.connect(gain);
-      gain.connect(bgKeepAliveCtx.destination);
-      osc.start();
-      console.log("[Automigo] Silent background keep-alive active (zero VLC disturbance)");
-    } catch(e) {}
+
+      const initAudio = () => {
+        try {
+          if (bgKeepAliveCtx && bgKeepAliveCtx.state === "running") return;
+          if (!bgKeepAliveCtx) {
+            bgKeepAliveCtx = new AudioCtx();
+            const osc = bgKeepAliveCtx.createOscillator();
+            const gain = bgKeepAliveCtx.createGain();
+            gain.gain.value = 0.000001; // Inaudible (zero sound, exempts tab from background throttling)
+            osc.connect(gain);
+            gain.connect(bgKeepAliveCtx.destination);
+            osc.start();
+            console.log("[Automigo] Silent background keep-alive active");
+          } else if (bgKeepAliveCtx.state === "suspended") {
+            bgKeepAliveCtx.resume().catch(() => {});
+          }
+        } catch (e) {}
+      };
+
+      // Only start AudioContext if user actively clicked, preventing Chrome autoplay warnings
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        initAudio();
+      } else {
+        window.addEventListener("click", initAudio, { once: true, passive: true });
+        window.addEventListener("keydown", initAudio, { once: true, passive: true });
+      }
+    } catch (e) {}
   }
 
   /* ═══════════════════════════════════════════════

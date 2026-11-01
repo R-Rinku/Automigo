@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Automigo AI Quiz Solver",
-  "version": "5.2.2",
+  "version": "5.2.3",
   "description": "Automated 10/10 AI Quiz Solver for Amigo LMS — Multi-Provider AI (Ollama, NVIDIA NIM, Groq, Gemini, OpenRouter, OpenAI, OmniRoute)",
   "icons": {
     "16": "icons/icon16.png",
