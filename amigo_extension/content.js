@@ -334,6 +334,54 @@
     return (txt || "").toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
   }
 
+  /* ═══════════════════════════════════════════════
+     NON-ACADEMIC COURSE DETECTOR & FILTER
+     Filters out non-subject cards (Academic Calendar, Orientation, Induction, Support, etc.)
+     so Automigo strictly navigates real academic subject learning paths.
+     ═══════════════════════════════════════════════ */
+  function isNonAcademicCourse(text) {
+    if (!text) return false;
+    const t = text.toLowerCase().trim();
+    const blacklist = [
+      "calendar",
+      "academic calendar",
+      "orientation",
+      "induction",
+      "handbook",
+      "manual",
+      "guideline",
+      "guidelines",
+      "announcement",
+      "announcements",
+      "notice",
+      "notices",
+      "support",
+      "helpdesk",
+      "contact",
+      "library",
+      "digital library",
+      "webinar",
+      "survey",
+      "attendance",
+      "business plan",
+      "weekly pulse",
+      "trailblazer",
+      "certificate",
+      "free certificate",
+      "placement",
+      "internship",
+      "career",
+      "alumni",
+      "demo course",
+      "re-registration",
+      "fee payment",
+      "admission",
+      "faqs",
+      "frequently asked questions"
+    ];
+    return blacklist.some(kw => t.includes(kw));
+  }
+
   function getSimilarityScore(str1, str2) {
     const s1 = normalizeText(str1);
     const s2 = normalizeText(str2);
@@ -1239,54 +1287,94 @@
 
   /* ═══════════════════════════════════════════════════════════════
      DASHBOARD (/my/) AUTONOMOUS COURSE PICKER
-     Scans all available courses, selects uncompleted (<100%),
-     and launches course runner.
+     Scans all available courses, selects uncompleted academic subjects (<100%),
+     and launches course runner. Excludes non-academic items (Calendar, Orientation, etc.)
      ═══════════════════════════════════════════════════════════════ */
   function handleDashboardPage() {
-    log("<span style='color:#89b4fa;font-weight:bold'>📊 Amigo Dashboard detected. Scanning courses...</span>");
+    log("<span style='color:#89b4fa;font-weight:bold'>📊 Amigo Dashboard detected. Scanning academic subjects...</span>");
 
     setTimeout(() => {
-      // Find all dashboard cards
-      const cards = Array.from(document.querySelectorAll(".card.dashboard-card, .card, .dashboard-card, .course-info-container"));
-      console.log("[Automigo Dashboard] Total cards found:", cards.length);
+      // Find all dashboard cards across RemUI course overview containers
+      const cards = Array.from(document.querySelectorAll(
+        "[data-region='course-overview'] .card, [data-region='course-content'], .block-myoverview .card, .dashboard-card, .card.dashboard-card, .course-info-container, .coursebox"
+      ));
+      console.log("[Automigo Dashboard] Total candidate cards found:", cards.length);
 
       const uncompletedCourses = [];
+      const seenIds = new Set();
 
       for (const card of cards) {
         const text = (card.innerText || "").trim();
         const textLower = text.toLowerCase();
 
-        // STRICTLY IGNORE non-academic cards
-        if (textLower.includes("business plan") || textLower.includes("weekly pulse") ||
-            textLower.includes("free certificate") || textLower.includes("trailblazer")) {
+        // STRICTLY IGNORE non-academic items (Calendar, Orientation, etc.)
+        if (isNonAcademicCourse(textLower)) {
           continue;
         }
-
-        // Must be an academic course card with completion info
-        const pctMatch = text.match(/(\d+)%\s*course\s*completed/i) || text.match(/course\s*progress:\s*\|?\s*(\d+)%/i);
-        if (!pctMatch) continue;
-
-        const percent = parseInt(pctMatch[1], 10);
 
         // Find the course link
         const courseLink = card.querySelector("a[href*='/course/view.php?id=']");
         const href = courseLink ? courseLink.href : null;
+        if (!href) continue;
 
-        const titleEl = card.querySelector("h3, h4, h5, .coursename, [role='heading']");
-        const titleMatch = text.match(/course name\s*\|\s*([^|\n]+)/i);
-        const title = (titleMatch ? titleMatch[1] : (titleEl ? titleEl.innerText : text.slice(0, 45))).trim();
+        const idMatch = href.match(/[?&]id=(\d+)/);
+        const courseId = idMatch ? idMatch[1] : null;
+        if (courseId && seenIds.has(courseId)) continue;
+        if (courseId) seenIds.add(courseId);
 
-        if (percent < 100 && href) {
-          uncompletedCourses.push({ title, percent, href, link: courseLink });
+        // Skip if subject already completed or checked in this session
+        if (courseId && (sessionStorage.getItem("amigo_course_done_" + courseId) || sessionStorage.getItem("amigo_course_done_course_" + courseId))) {
+          console.log("[Automigo Dashboard] Skipping previously checked/completed subject id=" + courseId);
+          continue;
         }
+
+        // Extract title
+        const titleEl = card.querySelector("h3, h4, h5, .coursename, [role='heading'], .course-name, .text-truncate");
+        const titleMatch = text.match(/course name\s*\|\s*([^|\n]+)/i);
+        const title = (titleMatch ? titleMatch[1] : (titleEl ? titleEl.innerText : (courseLink.innerText || text.slice(0, 45)))).trim();
+
+        if (isNonAcademicCourse(title)) continue;
+
+        // Extract completion percentage
+        let percent = -1;
+        const pctMatch = text.match(/(\d+)%\s*course\s*completed/i) || text.match(/course\s*progress:\s*\|?\s*(\d+)%/i) || text.match(/(\d+)%\s*completed/i);
+        if (pctMatch) {
+          percent = parseInt(pctMatch[1], 10);
+        } else {
+          const pb = card.querySelector(".progress-bar, [data-progress]");
+          if (pb) {
+            const val = pb.getAttribute("aria-valuenow") || pb.getAttribute("data-progress") || pb.style.width;
+            if (val) percent = parseInt(val, 10);
+          }
+        }
+
+        if (percent >= 100) {
+          console.log("[Automigo Dashboard] Skipping 100% completed subject:", title);
+          continue;
+        }
+
+        uncompletedCourses.push({
+          id: courseId,
+          title: title || ("Subject #" + (courseId || "")),
+          percent: percent >= 0 ? percent : 0,
+          href: href,
+          link: courseLink
+        });
       }
 
-      console.log("[Automigo Dashboard] Uncompleted courses found:", uncompletedCourses.length);
+      console.log("[Automigo Dashboard] Uncompleted subjects found:", uncompletedCourses.length);
 
       if (uncompletedCourses.length > 0) {
+        // Prioritize courses that have some progress (1-99%) over completely unstarted ones (0%)
+        uncompletedCourses.sort((a, b) => {
+          if (a.percent > 0 && b.percent === 0) return -1;
+          if (b.percent > 0 && a.percent === 0) return 1;
+          return a.percent - b.percent;
+        });
+
         const target = uncompletedCourses[0];
         log("<span style='color:#a6e3a1;font-weight:bold;font-size:13px'>" +
-            "🎯 Selected Course: '" + target.title + "' (" + target.percent + "% done) → Opening...</span>");
+            "🎯 Selected Subject: '" + target.title + "' (" + (target.percent > 0 ? target.percent + "% done" : "In Progress") + ") → Opening Learning Path...</span>");
 
         setTimeout(() => {
           window.location.href = target.href;
@@ -1294,19 +1382,31 @@
         return;
       }
 
-      // Fallback: check academic course links
-      const courseLinks = Array.from(document.querySelectorAll("a[href*='/course/view.php?id=']")).filter(a => {
-        const t = (a.innerText || "").toLowerCase();
-        return !t.includes("business") && !t.includes("weekly") && !t.includes("certificate");
+      // Fallback: check academic course links anywhere on the page
+      const academicCourseLinks = Array.from(document.querySelectorAll("a[href*='/course/view.php?id=']")).filter(a => {
+        const t = (a.innerText || a.getAttribute("aria-label") || a.title || "").trim();
+        if (!t || t.length < 3) return false;
+        if (isNonAcademicCourse(t)) return false;
+
+        const idMatch = a.href.match(/[?&]id=(\d+)/);
+        if (idMatch) {
+          const cid = idMatch[1];
+          if (sessionStorage.getItem("amigo_course_done_" + cid) || sessionStorage.getItem("amigo_course_done_course_" + cid)) {
+            return false;
+          }
+        }
+        return true;
       });
-      if (courseLinks.length > 0) {
-        const cl = courseLinks[0];
-        log("<span style='color:#a6e3a1'>Opening course: " + cl.innerText.trim() + "...</span>");
+
+      if (academicCourseLinks.length > 0) {
+        const cl = academicCourseLinks[0];
+        const clText = (cl.innerText || cl.title || "Subject").trim();
+        log("<span style='color:#a6e3a1'>Opening subject: " + clText + "...</span>");
         setTimeout(() => { window.location.href = cl.href; }, 1500);
         return;
       }
 
-      log("<span style='color:#a6e3a1;font-weight:bold'>🎉 All courses on dashboard appear 100% completed!</span>");
+      log("<span style='color:#a6e3a1;font-weight:bold;font-size:14px'>🎉 All academic subjects on dashboard have been checked and completed!</span>");
     }, 1800);
   }
 
@@ -1315,6 +1415,21 @@
      ═══════════════════════════════════════════════════════════════ */
   function handleCourseOrModulePage() {
     log("<span style='color:#89b4fa'>🏫 Checking Course / Module page...</span>");
+
+    // ══ CHECK: IF THIS IS A NON-ACADEMIC PAGE (e.g. Academic Calendar, Orientation), RETURN TO DASHBOARD ══
+    const pageTitle = (document.title || "").toLowerCase();
+    const headingText = Array.from(document.querySelectorAll(".page-header-headings, h1, h2, .breadcrumb")).map(e => e.innerText).join(" ").toLowerCase();
+    if (isNonAcademicCourse(pageTitle) || isNonAcademicCourse(headingText)) {
+      const courseId = getCourseIdFromUrl();
+      sessionStorage.setItem("amigo_course_done_" + courseId, "true");
+      const m = window.location.href.match(/[?&]id=(\d+)/);
+      if (m) sessionStorage.setItem("amigo_course_done_" + m[1], "true");
+      log("<span style='color:#fab387;font-weight:bold'>⚠️ Non-academic page detected ('" + (document.title || "Information") + "') — Skipping. Returning to Dashboard to open actual subject...</span>");
+      setTimeout(() => {
+        window.location.href = "https://amigo.amityonline.com/my/";
+      }, 1500);
+      return;
+    }
 
     // ══ RULE: NEVER TOUCH MODULES BEYOND 6 ══
     if (isModuleBeyondAllowed()) {
@@ -1490,7 +1605,11 @@
     });
 
     if (allDone) {
-      log(statusHtml + "<span style='color:#a6e3a1;font-weight:bold;font-size:14px'>🎉 All Modules 1-6 are 100% COMPLETE! Returning to Dashboard...</span>");
+      const courseId = getCourseIdFromUrl();
+      sessionStorage.setItem("amigo_course_done_" + courseId, "true");
+      const m = window.location.href.match(/[?&]id=(\d+)/);
+      if (m) sessionStorage.setItem("amigo_course_done_" + m[1], "true");
+      log(statusHtml + "<span style='color:#a6e3a1;font-weight:bold;font-size:14px'>🎉 All Modules 1-6 are 100% COMPLETE! Subject validated. Returning to Dashboard to check next subject...</span>");
       setTimeout(() => { window.location.href = "https://amigo.amityonline.com/my/"; }, 2000);
       return;
     }
@@ -1514,7 +1633,11 @@
             else if (targetModule.clickTarget) targetModule.clickTarget.click();
             else navigateToModule(6);
           } else {
-            log("<span style='color:#f38ba8;font-weight:bold'>User skipped Module 6. Returning to Dashboard...</span>");
+            const courseId = getCourseIdFromUrl();
+            sessionStorage.setItem("amigo_course_done_" + courseId, "true");
+            const m = window.location.href.match(/[?&]id=(\d+)/);
+            if (m) sessionStorage.setItem("amigo_course_done_" + m[1], "true");
+            log("<span style='color:#f38ba8;font-weight:bold'>User skipped Module 6. Subject finished — Returning to Dashboard for next subject...</span>");
             setTimeout(() => { window.location.href = "https://amigo.amityonline.com/my/"; }, 1500);
           }
         });
@@ -1538,7 +1661,11 @@
 
     const remainingLocked = uniqueModules.filter(m => !m.isDone).every(m => m.isLocked);
     if (remainingLocked && uniqueModules.length > 0) {
-      log(statusHtml + "<span style='color:#fab387;font-weight:bold'>🔒 All remaining modules are locked. Returning to Dashboard...</span>");
+      const courseId = getCourseIdFromUrl();
+      sessionStorage.setItem("amigo_course_done_" + courseId, "true");
+      const m = window.location.href.match(/[?&]id=(\d+)/);
+      if (m) sessionStorage.setItem("amigo_course_done_" + m[1], "true");
+      log(statusHtml + "<span style='color:#fab387;font-weight:bold'>🔒 All remaining modules are locked. Returning to Dashboard for next subject...</span>");
       setTimeout(() => { window.location.href = "https://amigo.amityonline.com/my/"; }, 2000);
       return;
     }
