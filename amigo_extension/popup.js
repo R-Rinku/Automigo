@@ -227,6 +227,63 @@ function showResult(msg, isSuccess) {
   resultBox.className = `result-box ${isSuccess ? "success" : "error"}`;
 }
 
+async function safeAiFetch(url, options = {}) {
+  return new Promise((resolve) => {
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage(
+        {
+          type: "AI_FETCH",
+          url: url,
+          options: options
+        },
+        (response) => {
+          if (chrome.runtime.lastError || !response) {
+            directFetch(url, options).then(resolve);
+            return;
+          }
+          resolve({
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            async text() { return response.text || ""; },
+            async json() {
+              if (response.data) return response.data;
+              try { return JSON.parse(response.text || "{}"); } catch (e) {
+                return { error: { message: response.error || response.text } };
+              }
+            }
+          });
+        }
+      );
+    } else {
+      directFetch(url, options).then(resolve);
+    }
+  });
+}
+
+async function directFetch(url, options = {}) {
+  try {
+    const opts = {
+      method: options.method || "GET",
+      headers: options.headers || {}
+    };
+    if (options.body) {
+      opts.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+    }
+    if (options.timeout) {
+      opts.signal = AbortSignal.timeout(options.timeout);
+    }
+    return await fetch(url, opts);
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      async text() { return err.message || "Connection error"; },
+      async json() { return { error: { message: err.message || "Connection error" } }; }
+    };
+  }
+}
+
 async function testConnection(pid, customCfg) {
   const profile = PROVIDER_PROFILES[pid] || PROVIDER_PROFILES.omniroute;
   const url = (customCfg && customCfg.url) || profile.url;
@@ -247,16 +304,16 @@ async function testConnection(pid, customCfg) {
   }
 
   try {
-    const resp = await fetch(url, {
+    const resp = await safeAiFetch(url, {
       method: "POST",
       headers: headers,
-      body: JSON.stringify({
+      body: {
         model: model,
         messages: [{ role: "user", content: "Reply with: OK" }],
         temperature: 0,
         max_tokens: 5
-      }),
-      signal: AbortSignal.timeout(10000)
+      },
+      timeout: 10000
     });
 
     if (!resp.ok) {
@@ -285,12 +342,12 @@ async function autoDetectAndInit() {
   // If active is omniroute or unset, check if Ollama is running locally instead
   if (currentSettings.activeProvider === "omniroute") {
     try {
-      const r1 = await fetch("http://127.0.0.1:20128/v1/models", { signal: AbortSignal.timeout(800) });
+      const r1 = await safeAiFetch("http://127.0.0.1:20128/v1/models", { timeout: 1000 });
       if (!r1.ok) throw new Error();
     } catch (e) {
       // OmniRoute not up, test Ollama
       try {
-        const r2 = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(800) });
+        const r2 = await safeAiFetch("http://localhost:11434/api/tags", { timeout: 1000 });
         if (r2.ok) {
           currentSettings.activeProvider = "ollama";
           await saveStoredSettings(currentSettings);

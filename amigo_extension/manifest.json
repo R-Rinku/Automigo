@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Automigo AI Quiz Solver",
-  "version": "5.2",
+  "version": "5.2.1",
   "description": "Automated 10/10 AI Quiz Solver for Amigo LMS — Multi-Provider AI (Ollama, NVIDIA NIM, Groq, Gemini, OpenRouter, OpenAI, OmniRoute)",
   "icons": {
     "16": "icons/icon16.png",
@@ -14,16 +14,11 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://amigo.amityonline.com/*",
-    "http://127.0.0.1:20128/*",
-    "http://localhost:11434/*",
-    "http://127.0.0.1:11434/*",
-    "https://integrate.api.nvidia.com/*",
-    "https://api.groq.com/*",
-    "https://openrouter.ai/*",
-    "https://generativelanguage.googleapis.com/*",
-    "https://api.openai.com/*"
+    "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Automigo AI Settings & Control",

@@ -358,6 +358,74 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
+     SAFE AI FETCH PROXY
+     Routes requests through background service worker to completely
+     bypass HTTPS mixed-content and private-network-access CORS blocks
+     on amigo.amityonline.com.
+     ═══════════════════════════════════════════════════════════ */
+  async function safeAiFetch(url, options = {}) {
+    return new Promise((resolve) => {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage(
+          {
+            type: "AI_FETCH",
+            url: url,
+            options: options
+          },
+          (response) => {
+            if (chrome.runtime.lastError || !response) {
+              // Direct fetch fallback if worker not ready
+              directFetch(url, options).then(resolve);
+              return;
+            }
+            resolve({
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+              async text() {
+                return response.text || "";
+              },
+              async json() {
+                if (response.data) return response.data;
+                try {
+                  return JSON.parse(response.text || "{}");
+                } catch (e) {
+                  return { error: { message: response.error || response.text } };
+                }
+              }
+            });
+          }
+        );
+      } else {
+        directFetch(url, options).then(resolve);
+      }
+    });
+  }
+
+  async function directFetch(url, options = {}) {
+    try {
+      const opts = {
+        method: options.method || "GET",
+        headers: options.headers || {}
+      };
+      if (options.body) {
+        opts.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+      }
+      if (options.timeout) {
+        opts.signal = AbortSignal.timeout(options.timeout);
+      }
+      return await fetch(url, opts);
+    } catch (err) {
+      return {
+        ok: false,
+        status: 0,
+        async text() { return err.message || "Failed to fetch"; },
+        async json() { return { error: { message: err.message || "Failed to fetch" } }; }
+      };
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
      AI SERVICE (Unified OpenAI-Compatible Client)
      Supports OmniRoute, Ollama, NVIDIA, Groq, OpenRouter,
      Gemini, OpenAI, or any Custom endpoint!
@@ -388,16 +456,16 @@
       }
 
       try {
-        const resp = await fetch(url, {
+        const resp = await safeAiFetch(url, {
           method: "POST",
           headers: headers,
-          body: JSON.stringify({
+          body: {
             model: model,
             messages: [{ role: "user", content: "Reply with exactly: OK" }],
             temperature: 0,
             max_tokens: 5
-          }),
-          signal: AbortSignal.timeout(12000)
+          },
+          timeout: 12000
         });
 
         if (!resp.ok) {
@@ -423,7 +491,7 @@
     async chatCompletion(messages, options = {}) {
       const cfg = getActiveProviderConfig();
       if (!cfg.url) {
-        throw new Error("AI provider endpoint URL is not configured. Please open settings (⚙️) and set your provider.");
+        throw new Error("AI provider endpoint URL is not configured. Please open extension popup to set your provider.");
       }
 
       const model = options.isReasoning ? cfg.reasoningModel : cfg.fastModel;
@@ -444,11 +512,11 @@
       };
 
       const timeoutMs = options.timeout || (options.isReasoning ? 30000 : 20000);
-      const resp = await fetch(cfg.url, {
+      const resp = await safeAiFetch(cfg.url, {
         method: "POST",
         headers: headers,
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(timeoutMs)
+        body: body,
+        timeout: timeoutMs
       });
 
       if (!resp.ok) {
@@ -475,16 +543,16 @@
 
       // 1. Try OmniRoute (default)
       try {
-        const r1 = await fetch("http://127.0.0.1:20128/v1/models", {
-          signal: AbortSignal.timeout(1000)
+        const r1 = await safeAiFetch("http://127.0.0.1:20128/v1/models", {
+          timeout: 1200
         });
         if (r1.ok) return "omniroute";
       } catch(e) {}
 
       // 2. Try Ollama local
       try {
-        const r2 = await fetch("http://localhost:11434/api/tags", {
-          signal: AbortSignal.timeout(1000)
+        const r2 = await safeAiFetch("http://localhost:11434/api/tags", {
+          timeout: 1200
         });
         if (r2.ok) {
           console.log("[Automigo] Auto-detected local Ollama instance!");
@@ -513,7 +581,7 @@
       log("<span style='color:#f38ba8;font-weight:bold'>✗ " + cfg.name + " connection failed!</span><br>" +
           "<span style='color:#f9e2af;font-size:11px'>Error: " + testResult.error + "</span><br>" +
           "<span style='color:#a6adc8;font-size:10px'>" + cfg.hint + "</span><br>" +
-          "<span style='color:#89b4fa;font-size:11px'>👉 Click the <b>⚙️ Settings</b> icon above to change your provider or API key.</span>");
+          "<span style='color:#89b4fa;font-size:11px'>👉 Click the <b>Automigo extension icon</b> in your browser toolbar to change your provider or API key.</span>");
       updateBadgeStatus(false);
       return false;
     }
@@ -782,6 +850,17 @@
   AIService.autoDetectLocalProvider().then(pid => {
     refreshBadge();
   });
+
+  const providerBadgeBar = document.getElementById("amigo-provider-badge-bar");
+  if (providerBadgeBar) {
+    providerBadgeBar.style.cursor = "pointer";
+    providerBadgeBar.title = "Click to configure AI providers in extension popup";
+    providerBadgeBar.addEventListener("click", () => {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: "OPEN_POPUP" });
+      }
+    });
+  }
 
   /* START button: runs pre-flight first, then starts */
   btnAutoLoop.addEventListener("click", async () => {
