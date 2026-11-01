@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="automigo_social_preview.png" alt="Automigo — AI Companion for Amigo LMS" width="100%" style="border-radius: 10px;" />
+</p>
+
 # ⚡ Automigo
 
 Automated quiz solver & course runner for **Amigo LMS (Amity Online)** powered by multi-provider AI (Ollama, NVIDIA NIM, Groq, Google Gemini, OpenRouter, OmniRoute, OpenAI).
